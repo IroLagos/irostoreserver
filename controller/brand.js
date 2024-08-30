@@ -7,7 +7,7 @@ const path = require("path");
 const { uploadtocloudinary, uploadType } = require("../middleware/cloudinary");
 const db = require("../models");
 const { totalmem } = require("os");
-const { Product, Review, Purchase, Category } = db;
+const { Brand, Product } = db;
 const { Op } = require('sequelize');
 
 cloudinary.config({
@@ -19,7 +19,7 @@ cloudinary.config({
 	const create = async (req, res) => {
 		try {
 
-			const {title, heading, availability, price, discount, description, color, size, imageUrl, sub, brand } = req.body;
+			const {name, imageUrl } = req.body;
 
 			let imageurl = '';
 			if (req.file) {
@@ -32,9 +32,9 @@ cloudinary.config({
 				imageurl = uploadresult.url;
 			}
 
-			// create Product record in the database
-			const record = await Product.create({ ...req.body, imageUrl: imageurl });
-			return res.status(200).json({ record, msg: "Successfully create Product" });
+			// create Brand record in the database
+			const record = await Brand.create({ ...req.body, imageUrl: imageurl });
+			return res.status(200).json({ record, msg: "Successfully create Brand" });
 		} catch (error) {
 			console.log("henry", error);
 			return res.status(500).json({ msg: "fail to create", error });
@@ -43,21 +43,12 @@ cloudinary.config({
 
 	const readall = async (req, res) => {
 		try {
+			const limit = req.query.limit || 10;
+			const offset = req.query.offset;
 
-			const {title} = req.query;
-
-			let whereClause = {};
-
-			if(title){
-				whereClause.title = {
-					[Op.iLike]: `%${title}%`
-				};
-			}
-
-			const records = await Product.findAll({
-				where: whereClause,
-				include:[{model:Purchase, as: 'Purchase'},{model:Review, as: 'Review'},{model:Category, as:'Category'}],
-				order:[['createdAt', 'DESC']]
+			const records = await Brand.findAll({
+				// include:[{model:Payment, as: 'Payment'},{model:User, as: 'User'}]
+                include:{model:Product, as: 'Product'}
 			});
 			return res.json(records);
 		} catch (e) {
@@ -68,7 +59,9 @@ cloudinary.config({
 	const readId = async (req, res) => {
 		try {
 			const { id } = req.params;
-			const record = await Product.findOne({ where: { id } });
+			const record = await Brand.findOne({ where: { id },
+				include:{model:Product, as: 'Product'}
+			});
 			return res.json(record);
 		} catch (e) {
 			return res.json({ msg: "fail to read", status: 500, route: "/read/:id" });
@@ -78,8 +71,8 @@ cloudinary.config({
 	const readByUserId = async (req, res) => {
 		try {
 			const { userId } = req.params;
-			const products = await Product.findAll({ where: { user: userId } });
-			return res.json(products);
+			const communities = await Brand.findAll({ where: { user: userId } });
+			return res.json(communities);
 		} catch (e) {
 			return res.json({ msg: "fail to read", status: 500, route: "/read/user/:userId" });
 		}
@@ -87,51 +80,41 @@ cloudinary.config({
 
 	const update = async (req, res) => {
 		try {
-			const { title, heading, availability, price, discount, description, color, size,sub,brand, categoryId } = req.body;
-			
+			const {name} = req.body;
+
 			// Prepare update object with only the fields that should be updated
 			const updateData = {};
-			if (title !== undefined) updateData.title = title;
-			if (heading !== undefined) updateData.heading = heading;
-			if (availability !== undefined) updateData.availability = availability;
-			if (price !== undefined) updateData.price = price;
-			if (discount !== undefined) updateData.discount = discount;
-			if (description !== undefined) updateData.description = description;
-			if (color !== undefined) updateData.color = color;
-			if (size !== undefined) updateData.size = size;
-			if (sub !== undefined) updateData.sub = sub;
-			if (brand !== undefined) updateData.brand = brand;
-			if (categoryId !== undefined) updateData.categoryId = categoryId;
-	
-			// Check if image was uploaded
-			if (req.file) {
+			if(name !== undefined) updateData.name = name;
+
+			// check if image was uploaded
+			if(req.file){
 				console.log(req.file);
 				// Upload image to Cloudinary
 				const uploadresult = await uploadtocloudinary(req.file.buffer);
-				if (uploadresult.message === "error") {
+				if(uploadresult.message === "error"){
 					throw new Error(uploadresult.error.message);
 				}
 				updateData.imageUrl = uploadresult.url;
 			}
-	
-			// Update the product with only the fields that were provided
-			const [updated] = await Product.update(updateData, { where: { id: req.params.id } });
-			
+
+		// Update the product with only the fields that were provided
+			const [updated] = await Brand.update(updateData, { where: { id: req.params.id } });
+
 			if (updated) {
-				const updatedProduct = await Product.findByPk(req.params.id);
-				res.status(200).json(updatedProduct);
+				const updatedBrand = await Brand.findByPk(req.params.id);
+				res.status(200).json(updatedBrand);
 			} else {
-				res.status(404).json({ message: 'Product not found' });
+				res.status(404).json({ message: 'Brand not found' });
 			}
 		} catch (error) {
-			res.status(500).json({ message: 'Error updating the Product', error: error.message });
+			res.status(500).json({ message: 'Error updating the Brand', error });
 		}
 	}
 
 	const deleteId = async (req, res) => {
 		try {
 			const { id } = req.params;
-			const record = await Product.findOne({ where: { id } });
+			const record = await Brand.findOne({ where: { id } });
 
 			if (!record) {
 				return res.json({ msg: "Can not find existing record" });
