@@ -72,29 +72,33 @@ cloudinary.config({
 		}
 	  }
 
-	const readall = async (req, res) => {
+	  const readall = async (req, res) => {
 		try {
-
-			const {title} = req.query;
-
-			let whereClause = {};
-
-			if(title){
-				whereClause.title = {
-					[Op.iLike]: `%${title}%`
-				};
-			}
-
-			const records = await Product.findAll({
-				where: whereClause,
-				include:[{model:Purchase, as: 'Purchase'},{model:Review, as: 'Review'},{model:Category, as:'Category'}],
-				order:[['createdAt', 'DESC']]
-			});
-			return res.json(records);
+		  const { title } = req.query;
+		  let whereClause = {};
+	  
+		  if (title) {
+			whereClause.title = {
+			  [Op.iLike]: `%${title}%`
+			};
+		  }
+	  
+		  const records = await Product.findAll({
+			where: whereClause,
+			include: [{ model: Purchase, as: 'Purchase' }, { model: Review, as: 'Review' }, { model: Category, as: 'Category' }],
+			order: [['createdAt', 'DESC']]
+		  });
+	  
+		  if (records.length === 0) {
+			console.log('No products found. Query:', whereClause);
+		  }
+	  
+		  return res.json(records);
 		} catch (e) {
-			return res.json({ msg: "fail to read", status: 500, route: "/read" });
+		  console.error('Error in readall:', e);
+		  return res.status(500).json({ msg: "fail to read", status: 500, route: "/read", error: e.message });
 		}
-	}
+	  }
 
 
 
@@ -161,10 +165,17 @@ cloudinary.config({
 	// 		res.status(500).json({ message: 'Error updating the Product', error: error.message });
 	// 	}
 	// }
+
 	const update = async (req, res) => {
 		try {
 		  const { title, heading, availability, price, discount, description, color, size, sub, brand, categoryId } = req.body;
 		  
+		  // Fetch the current product
+		  const currentProduct = await Product.findByPk(req.params.id);
+		  if (!currentProduct) {
+			return res.status(404).json({ message: 'Product not found' });
+		  }
+	  
 		  // Prepare update object with only the fields that should be updated
 		  const updateData = {};
 		  if (title !== undefined) updateData.title = title;
@@ -180,15 +191,16 @@ cloudinary.config({
 		  if (categoryId !== undefined) updateData.categoryId = categoryId;
 	  
 		  if (req.files && req.files.length > 0) {
-			let imageUrls = [];
+			let newImageUrls = [];
 			for (let file of req.files) {
 			  const uploadResult = await uploadtocloudinary(file.buffer);
 			  if (uploadResult.message === "error") {
 				throw new Error(uploadResult.error.message);
 			  }
-			  imageUrls.push(uploadResult.url);
+			  newImageUrls.push(uploadResult.url);
 			}
-			updateData.imageUrls = imageUrls;
+			// Combine new images with existing ones
+			updateData.imageUrls = [...currentProduct.imageUrls, ...newImageUrls];
 		  }
 	  
 		  // Update the product with only the fields that were provided
@@ -201,9 +213,11 @@ cloudinary.config({
 			res.status(404).json({ message: 'Product not found' });
 		  }
 		} catch (error) {
+		  console.error('Error in update:', error);
 		  res.status(500).json({ message: 'Error updating the Product', error: error.message });
 		}
 	  }
+	
 
 	const deleteId = async (req, res) => {
 		try {
