@@ -50,8 +50,8 @@ module.exports = (sequelize, DataTypes) => {
           type: DataTypes.STRING,
           allowNull: false
         },
-      imageUrl: {
-          type: DataTypes.STRING,
+      imageUrls: {
+          type: DataTypes.ARRAY(DataTypes.STRING),
           allowNull: true
         },
       color: {

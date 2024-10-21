@@ -12,6 +12,7 @@ const helmet = require('helmet');
 const cors = require('cors');
 const banner = require('./route/banner');
 const brand = require('./route/brand');
+const customer = require('./route/customer')
 
 
 const app = express();
@@ -55,6 +56,7 @@ app.use("/api/brands", brand);
 app.use("/api/reviews", review);
 app.use("/api/posts", blog)
 app.use("/api/banners", banner)
+app.use("/api/customers", customer)
 
 
 
