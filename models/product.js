@@ -4,7 +4,6 @@
 const {Model, UUIDV4} = require('sequelize');
 
 
-
 module.exports = (sequelize, DataTypes) => {
   class Product extends Model{
    
@@ -20,6 +19,8 @@ module.exports = (sequelize, DataTypes) => {
       Product.hasMany(models.Review, { foreignKey: 'productId', as:'Review' });
       Product.hasMany(models.Purchase, { foreignKey: 'productId', as:'Purchase' });
       Product.belongsTo(models.Category, {foreignKey:'categoryId', as:'Category'})
+      Product.belongsTo(models.Sub, {foreignKey:'subId', as:'Subcategory'})
+      Product.belongsTo(models.Subsub, {foreignKey:'subsubId', as:'Subsubcategory'})
     }
   }
   Product.init({
@@ -59,10 +60,14 @@ module.exports = (sequelize, DataTypes) => {
           allowNull: true
         },
       size: {
-          type: DataTypes.STRING,
+          type: DataTypes.ARRAY(DataTypes.STRING),
           allowNull: true
         },
       sub: {
+          type: DataTypes.STRING,
+          allowNull: true
+        },
+      subsub: {
           type: DataTypes.STRING,
           allowNull: true
         },
@@ -72,6 +77,10 @@ module.exports = (sequelize, DataTypes) => {
         },
       availability: {
           type: DataTypes.STRING,
+          allowNull: true
+        },
+      counter: {
+          type: DataTypes.FLOAT,
           allowNull: true
         },
       categoryId: {
